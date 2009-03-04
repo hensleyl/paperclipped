@@ -19,6 +19,11 @@ class AssetsController < ApplicationController
         @asset.pages << @page
       end
     end
+    
+    after :update do
+      ResponseCache.instance.clear
+    end
+    
     response_for :update do |format|
       format.html { 
         flash[:notice] = "Asset successfully updated."
@@ -28,7 +33,7 @@ class AssetsController < ApplicationController
     response_for :create do |format|
       format.html { 
         flash[:notice] = "Asset successfully uploaded."
-        redirect_to(@page ? page_edit_url(@page) : (params[:continue] ? edit_asset_path(@asset) : assets_path)) 
+        redirect_to(@page ? edit_admin_page_url(@page) : (params[:continue] ? edit_asset_path(@asset) : assets_path)) 
       }
     end
      
@@ -106,6 +111,7 @@ class AssetsController < ApplicationController
     @asset = Asset.find(params[:id])
     # This is a temporary measure! It is not very RESTful, but I like the confirm page... 
     if request.post?
+      session[:bucket].delete(@asset.asset.url) if session[:bucket] && session[:bucket].key?(@asset.asset.url)
       @asset.destroy
       redirect_to assets_path
     end 

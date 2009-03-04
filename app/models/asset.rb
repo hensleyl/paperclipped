@@ -52,13 +52,13 @@ class Asset < ActiveRecord::Base
   
   order_by 'title'
   
-  if Radiant::Config["assets.additional_thumbnails"]
+  if Radiant::Config.table_exists? && Radiant::Config["assets.additional_thumbnails"]
     thumbnails = Radiant::Config["assets.additional_thumbnails"].split(', ').collect{|s| s.split('=')}.inject({}) {|ha, (k, v)| ha[k.to_sym] = v; ha}
   else
     thumbnails = {}
   end
   thumbnails[:icon] = ['42x42#', :png]
-  thumbnails[:thumbnail] = '100x100>'
+  thumbnails[:thumbnail] = ['100x100>', :png]
   
   has_attached_file :asset,
                     :styles => thumbnails,
@@ -74,9 +74,9 @@ class Asset < ActiveRecord::Base
   
   validates_attachment_presence :asset, :message => "You must choose a file to upload!"
   validates_attachment_content_type :asset, 
-    :content_type => Radiant::Config["assets.content_types"].split(', ') if Radiant::Config["assets.content_types"]
+    :content_type => Radiant::Config["assets.content_types"].split(', ') if Radiant::Config.table_exists? && Radiant::Config["assets.content_types"]
   validates_attachment_size :asset, 
-    :less_than => Radiant::Config["assets.max_asset_size"].to_i.megabytes if Radiant::Config["assets.max_asset_size"]
+    :less_than => Radiant::Config["assets.max_asset_size"].to_i.megabytes if Radiant::Config.table_exists? && Radiant::Config["assets.max_asset_size"]
     
     
   before_save :assign_title
@@ -88,7 +88,7 @@ class Asset < ActiveRecord::Base
       self.asset.url
     else
       if self.pdf?
-        "/images/assets/pdf_#{size.to_s}.png"
+        self.asset.url(size.to_sym)
       elsif self.movie?
         "/images/assets/movie_#{size.to_s}.png"
       elsif self.audio?
